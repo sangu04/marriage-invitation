@@ -1072,10 +1072,10 @@ footer {
     inset: 0;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-end;   /* Move content to bottom */
     align-items: center;
     padding: 28px;
-    text-align: center;
+    padding-bottom: 40px;         /* Distance from bottom */
     background: linear-gradient(135deg, rgba(8, 5, 5, 0.25), rgba(8, 5, 5, 0.82));
 }
 

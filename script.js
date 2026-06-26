@@ -97,9 +97,87 @@ if (heroSlides.length > 0) {
     setInterval(rotateHeroCarousel, 2000);
 }
 
+// --- 🧭 IN-PLACE PAGE ROUTING ---
+function getRouteContainer() {
+    return document.getElementById('page-content') || document.getElementById('main-content');
+}
+
+function loadRoute(targetPath, { pushState = true } = {}) {
+    if (!targetPath || targetPath === window.location.pathname) {
+        return Promise.resolve();
+    }
+
+    return fetch(targetPath, { cache: 'no-store' })
+        .then((response) => {
+            if (!response.ok) {
+                throw new Error('Route fetch failed');
+            }
+            return response.text();
+        })
+        .then((html) => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const routeContainer = getRouteContainer();
+            const incomingContent = doc.getElementById('page-content') || doc.getElementById('main-content') || doc.body;
+
+            if (routeContainer && incomingContent) {
+                routeContainer.innerHTML = incomingContent.innerHTML;
+            }
+
+            document.title = doc.title || document.title;
+
+            const existingStyles = Array.from(document.head.querySelectorAll('style[data-route-style]'));
+            const existingStyleTexts = existingStyles.map((style) => style.textContent);
+            const routeStyles = Array.from(doc.head.querySelectorAll('style'));
+            routeStyles.forEach((style) => {
+                if (!existingStyleTexts.includes(style.textContent)) {
+                    const clonedStyle = style.cloneNode(true);
+                    clonedStyle.setAttribute('data-route-style', 'true');
+                    document.head.appendChild(clonedStyle);
+                }
+            });
+
+            if (pushState) {
+                history.pushState({ path: targetPath }, '', targetPath);
+            }
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        })
+        .catch(() => {
+            window.location.href = targetPath;
+        });
+}
+
+document.addEventListener('click', (event) => {
+    const clickedLink = event.target.closest('a');
+    if (!clickedLink) {
+        return;
+    }
+
+    const href = clickedLink.getAttribute('href');
+    if (!href || href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:')) {
+        return;
+    }
+
+    const targetUrl = new URL(href, window.location.href);
+    if (targetUrl.origin !== window.location.origin || !targetUrl.pathname.endsWith('.html')) {
+        return;
+    }
+
+    event.preventDefault();
+    loadRoute(targetUrl.pathname);
+});
+
+window.addEventListener('popstate', () => {
+    loadRoute(window.location.pathname, { pushState: false });
+});
+
 // --- 🎵 AUDIO PLAYER ---
 const audio = document.getElementById("bg-music");
 const musicToggle = document.getElementById("music-toggle");
+let audioInitialized = false;
+let userPaused = false;
+let resumeRetryTimer = null;
 
 function setMusicButtonState(isPlaying) {
     if (!musicToggle) {
@@ -117,6 +195,48 @@ function persistMusicState(isPlaying) {
 
 function getShouldPlayMusic() {
     return localStorage.getItem('musicPlaying') !== 'false';
+}
+
+function saveMusicProgress() {
+    if (!audio || Number.isNaN(audio.currentTime)) {
+        return;
+    }
+
+    const safeTime = Math.max(0, Math.floor(audio.currentTime));
+    localStorage.setItem('musicCurrentTime', safeTime.toString());
+    if (!audio.paused && !userPaused) {
+        persistMusicState(true);
+    }
+}
+
+function restoreMusicProgress() {
+    if (!audio) {
+        return;
+    }
+
+    const savedPlaybackTime = Number(localStorage.getItem('musicCurrentTime') || 0);
+    if (savedPlaybackTime > 0 && (audio.currentTime < savedPlaybackTime || audio.currentTime === 0)) {
+        audio.currentTime = savedPlaybackTime;
+    }
+}
+
+function tryResumeMusic() {
+    if (!audio || !getShouldPlayMusic() || userPaused || !audio.paused) {
+        return;
+    }
+
+    restoreMusicProgress();
+
+    if (resumeRetryTimer) {
+        clearTimeout(resumeRetryTimer);
+    }
+
+    audio.play().then(() => {
+        setMusicButtonState(true);
+        persistMusicState(true);
+    }).catch(() => {
+        resumeRetryTimer = setTimeout(tryResumeMusic, 400);
+    });
 }
 
 if (audio) {
@@ -137,23 +257,29 @@ if (audio) {
             return;
         }
 
-        if (!audio.src) {
-            audio.src = 'sangu%20audio.mpeg';
-        }
-
-        const savedPlaybackTime = Number(localStorage.getItem('musicCurrentTime') || 0);
-        if (savedPlaybackTime > 0 && audio.currentTime < savedPlaybackTime) {
-            audio.currentTime = savedPlaybackTime;
-        }
-
-        try {
+        if (!audioInitialized) {
+            if (!audio.src) {
+                audio.src = 'sangu%20audio.mpeg';
+            }
             audio.load();
-            await audio.play();
+            audioInitialized = true;
+        }
+
+        restoreMusicProgress();
+        userPaused = false;
+
+        if (audio.paused) {
+            try {
+                await audio.play();
+                setMusicButtonState(true);
+                persistMusicState(true);
+            } catch (error) {
+                setMusicButtonState(false);
+                persistMusicState(false);
+            }
+        } else {
             setMusicButtonState(true);
             persistMusicState(true);
-        } catch (error) {
-            setMusicButtonState(false);
-            persistMusicState(false);
         }
     };
 
@@ -173,19 +299,22 @@ if (audio) {
         }
 
         if (clickedLink && getShouldPlayMusic()) {
+            saveMusicProgress();
             startMusic(true);
         }
     }, { capture: true });
 
     window.addEventListener('pageshow', resumeMusicIfEnabled);
-    window.addEventListener('beforeunload', () => {
-        if (!audio.paused) {
-            localStorage.setItem('musicCurrentTime', audio.currentTime.toString());
+    window.addEventListener('focus', () => {
+        if (getShouldPlayMusic()) {
+            tryResumeMusic();
         }
     });
+    window.addEventListener('beforeunload', saveMusicProgress);
+    window.addEventListener('pagehide', saveMusicProgress);
     document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') {
-            resumeMusicIfEnabled();
+        if (document.visibilityState === 'visible' && getShouldPlayMusic()) {
+            tryResumeMusic();
         }
     });
 
@@ -193,8 +322,10 @@ if (audio) {
         musicToggle.addEventListener("click", (event) => {
             event.stopPropagation();
             if (audio.paused) {
+                userPaused = false;
                 startMusic(true);
             } else {
+                userPaused = true;
                 audio.pause();
                 setMusicButtonState(false);
                 persistMusicState(false);
@@ -203,21 +334,39 @@ if (audio) {
     }
 
     audio.addEventListener('play', () => {
+        userPaused = false;
         setMusicButtonState(true);
         persistMusicState(true);
     });
+    audio.addEventListener('canplay', () => {
+        if (getShouldPlayMusic() && !userPaused && audio.paused) {
+            tryResumeMusic();
+        }
+    });
     audio.addEventListener('pause', () => {
-        setMusicButtonState(false);
-        persistMusicState(false);
+        if (userPaused || audio.ended) {
+            setMusicButtonState(false);
+            persistMusicState(false);
+        } else {
+            setMusicButtonState(true);
+            persistMusicState(true);
+        }
     });
     audio.addEventListener('timeupdate', () => {
         if (audio.currentTime > 0) {
-            localStorage.setItem('musicCurrentTime', audio.currentTime.toString());
+            saveMusicProgress();
         }
     });
     audio.addEventListener('ended', () => {
+        userPaused = true;
         persistMusicState(false);
     });
+
+    setInterval(() => {
+        if (!audio.paused && !userPaused) {
+            saveMusicProgress();
+        }
+    }, 1000);
 
     resumeMusicIfEnabled();
 }
