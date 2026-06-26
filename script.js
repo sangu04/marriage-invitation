@@ -163,12 +163,16 @@ if (audio) {
         }
     };
 
-    document.addEventListener('pointerdown', () => startMusic(true), { capture: true });
-    document.addEventListener('touchstart', () => startMusic(true), { capture: true });
-    document.addEventListener('keydown', () => startMusic(true), { capture: true });
     document.addEventListener('click', (event) => {
-        const clickedLink = event.target.closest('a');
-        if (clickedLink) {
+        const target = event.target;
+        const clickedMusicButton = target && target.closest && target.closest('#music-toggle');
+        const clickedLink = target && target.closest && target.closest('a');
+
+        if (clickedMusicButton) {
+            return;
+        }
+
+        if (clickedLink && getShouldPlayMusic()) {
             startMusic(true);
         }
     }, { capture: true });
