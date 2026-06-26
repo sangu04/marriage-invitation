@@ -1,11 +1,11 @@
-const CACHE_NAME = 'wedding-invitation-v5';
+const CACHE_NAME = 'wedding-invitation-v6';
 const urlsToCache = [
   '/',
   '/index.html',
   '/memories.html',
   '/engagement.html',
-  '/style.css?v=5',
-  '/script.js?v=5',
+  '/style.css?v=6',
+  '/script.js?v=6',
   '/manifest.json',
   '/sangu%20audio.mpeg'
 ];

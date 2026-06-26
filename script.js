@@ -111,9 +111,16 @@ function setMusicButtonState(isPlaying) {
         : '<i class="fa-solid fa-play"></i>';
 }
 
+function persistMusicState(isPlaying) {
+    localStorage.setItem('musicPlaying', isPlaying ? 'true' : 'false');
+}
+
+function getShouldPlayMusic() {
+    return localStorage.getItem('musicPlaying') !== 'false';
+}
+
 if (audio) {
     const savedVolume = Number(localStorage.getItem('musicVolume') || 50) / 100;
-    const savedPlaybackTime = Number(localStorage.getItem('musicCurrentTime') || 0);
     audio.volume = savedVolume;
 
     if (musicToggle) {
@@ -121,38 +128,51 @@ if (audio) {
         setMusicButtonState(audio.paused);
     }
 
-    const persistMusicState = (isPlaying) => {
-        localStorage.setItem('musicPlaying', isPlaying ? 'true' : 'false');
-    };
+    const startMusic = async (force = false) => {
+        if (!audio) {
+            return;
+        }
 
-    const startMusic = () => {
+        if (!force && !getShouldPlayMusic()) {
+            return;
+        }
+
         if (!audio.src) {
             audio.src = 'sangu%20audio.mpeg';
         }
-        audio.load();
+
+        const savedPlaybackTime = Number(localStorage.getItem('musicCurrentTime') || 0);
         if (savedPlaybackTime > 0 && audio.currentTime < savedPlaybackTime) {
             audio.currentTime = savedPlaybackTime;
         }
-        if (audio.paused) {
-            audio.play().then(() => {
-                setMusicButtonState(true);
-                persistMusicState(true);
-            }).catch(() => {
-                setMusicButtonState(false);
-                persistMusicState(false);
-            });
+
+        try {
+            audio.load();
+            await audio.play();
+            setMusicButtonState(true);
+            persistMusicState(true);
+        } catch (error) {
+            setMusicButtonState(false);
+            persistMusicState(false);
         }
     };
 
     const resumeMusicIfEnabled = () => {
-        const shouldPlay = localStorage.getItem('musicPlaying') !== 'false';
-        if (shouldPlay) {
-            startMusic();
+        if (getShouldPlayMusic()) {
+            startMusic(true);
         }
     };
 
-    document.addEventListener('pointerdown', startMusic, { once: true });
-    document.addEventListener('keydown', startMusic, { once: true });
+    document.addEventListener('pointerdown', () => startMusic(true), { capture: true });
+    document.addEventListener('touchstart', () => startMusic(true), { capture: true });
+    document.addEventListener('keydown', () => startMusic(true), { capture: true });
+    document.addEventListener('click', (event) => {
+        const clickedLink = event.target.closest('a');
+        if (clickedLink) {
+            startMusic(true);
+        }
+    }, { capture: true });
+
     window.addEventListener('pageshow', resumeMusicIfEnabled);
     window.addEventListener('beforeunload', () => {
         if (!audio.paused) {
@@ -169,8 +189,7 @@ if (audio) {
         musicToggle.addEventListener("click", (event) => {
             event.stopPropagation();
             if (audio.paused) {
-                startMusic();
-                persistMusicState(true);
+                startMusic(true);
             } else {
                 audio.pause();
                 setMusicButtonState(false);
