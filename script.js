@@ -89,7 +89,8 @@ function setMusicButtonState(isPlaying) {
 }
 
 if (audio) {
-    audio.volume = Number(localStorage.getItem('musicVolume') || 50) / 100;
+    const savedVolume = Number(localStorage.getItem('musicVolume') || 50) / 100;
+    audio.volume = savedVolume;
 
     if (musicToggle) {
         musicToggle.classList.remove("hidden");
@@ -104,29 +105,54 @@ if (audio) {
         if (audio.paused) {
             audio.play().then(() => {
                 setMusicButtonState(true);
+                localStorage.setItem('musicPlaying', 'true');
             }).catch(() => {
                 setMusicButtonState(false);
+                localStorage.setItem('musicPlaying', 'false');
             });
+        }
+    };
+
+    const resumeMusicIfEnabled = () => {
+        const shouldPlay = localStorage.getItem('musicPlaying') !== 'false';
+        if (shouldPlay) {
+            startMusic();
         }
     };
 
     document.addEventListener('pointerdown', startMusic, { once: true });
     document.addEventListener('keydown', startMusic, { once: true });
+    window.addEventListener('pageshow', resumeMusicIfEnabled);
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            resumeMusicIfEnabled();
+        }
+    });
 
     if (musicToggle) {
         musicToggle.addEventListener("click", (event) => {
             event.stopPropagation();
             if (audio.paused) {
                 startMusic();
+                localStorage.setItem('musicPlaying', 'true');
             } else {
                 audio.pause();
                 setMusicButtonState(false);
+                localStorage.setItem('musicPlaying', 'false');
             }
         });
     }
 
-    audio.addEventListener('play', () => setMusicButtonState(true));
-    audio.addEventListener('pause', () => setMusicButtonState(false));
+    audio.addEventListener('play', () => {
+        setMusicButtonState(true);
+        localStorage.setItem('musicPlaying', 'true');
+    });
+    audio.addEventListener('pause', () => {
+        setMusicButtonState(false);
+        localStorage.setItem('musicPlaying', 'false');
+    });
+
+    resumeMusicIfEnabled();
 }
 
 const petalsContainer = document.getElementById("petals-container");

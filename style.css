@@ -1220,7 +1220,7 @@ footer {
 
 .invitee-background {
     position: relative;
-    min-height: min(860px, 78vh);
+    min-height: min(920px, 82vh);
     border-radius: 24px;
     overflow: hidden;
     background: #0d090a url('family section.jpeg') center center/cover no-repeat;
@@ -1234,11 +1234,32 @@ footer {
     inset: 0;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
     align-items: center;
     text-align: center;
-    padding: 40px 28px;
-    background: linear-gradient(180deg, rgba(8, 6, 6, 0.28), rgba(8, 6, 6, 0.12));
+    padding: 38px 24px 44px;
+    background: linear-gradient(180deg, rgba(8, 6, 6, 0.2), rgba(8, 6, 6, 0.55));
+}
+
+.invitee-section .section-title,
+.invitee-section .section-subtitle,
+.invitee-note {
+    position: relative;
+    z-index: 1;
+}
+
+.invitee-section .section-title {
+    margin-top: 10px;
+}
+
+.invitee-section .section-subtitle {
+    margin-bottom: 18px;
+}
+
+.invitee-note {
+    max-width: 760px;
+    margin-top: 8px;
+    padding: 0 10px;
 }
 
 .invitee-section .section-title {
