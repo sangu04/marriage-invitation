@@ -1,41 +1,60 @@
 // --- 💫 LOADER ANIMATION --- 
 window.addEventListener('load', () => {
     const loader = document.getElementById('loader');
-    setTimeout(() => {
-        loader.classList.add('hidden');
-    }, 1000);
+    if (loader) {
+        setTimeout(() => {
+            loader.classList.add('hidden');
+        }, 1000);
+    }
 });
 
 // --- 📊 SCROLL PROGRESS BAR ---
 window.addEventListener('scroll', () => {
     const scrollProgress = document.getElementById('scroll-progress');
-    const windowHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
-    const scrolled = (window.scrollY / windowHeight) * 100;
-    scrollProgress.style.width = scrolled + '%';
+    if (scrollProgress) {
+        const windowHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+        const scrolled = (window.scrollY / windowHeight) * 100;
+        scrollProgress.style.width = scrolled + '%';
+    }
 
     // Show/Hide Back to Top Button
     const backToTop = document.getElementById('back-to-top');
-    if (window.scrollY > 300) {
-        backToTop.classList.add('show');
-    } else {
-        backToTop.classList.remove('show');
+    if (backToTop) {
+        if (window.scrollY > 300) {
+            backToTop.classList.add('show');
+        } else {
+            backToTop.classList.remove('show');
+        }
     }
 });
 
 // --- ⬆️ BACK TO TOP BUTTON ---
-document.getElementById('back-to-top').addEventListener('click', () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-});
+const backToTopButton = document.getElementById('back-to-top');
+if (backToTopButton) {
+    backToTopButton.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+}
 
 // --- ⏳ COUNTDOWN TIMER SETUP ---
 const targetDate = new Date("July 9, 2026 12:30:00").getTime();
 
 function updateCountdown() {
+    const countdownContainer = document.querySelector('.countdown-container');
+    const daysEl = document.getElementById('days');
+    const hoursEl = document.getElementById('hours');
+    const minutesEl = document.getElementById('minutes');
+    const secondsEl = document.getElementById('seconds');
+
+    if (!countdownContainer || !daysEl || !hoursEl || !minutesEl || !secondsEl) {
+        return;
+    }
+
     const now = new Date().getTime();
     const difference = targetDate - now;
 
     if (difference < 0) {
-        document.querySelector(".countdown-container").innerHTML = "<h3>The Wedding Celebration has Begun!</h3>";
+        countdownContainer.innerHTML = '<h3>The Wedding Celebration has Begun!</h3>';
         return;
     }
 
@@ -44,12 +63,14 @@ function updateCountdown() {
     const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
     const seconds = Math.floor((difference % (1000 * 60)) / 1000);
 
-    document.getElementById("days").innerText = days.toString().padStart(2, '0');
-    document.getElementById("hours").innerText = hours.toString().padStart(2, '0');
-    document.getElementById("minutes").innerText = minutes.toString().padStart(2, '0');
-    document.getElementById("seconds").innerText = seconds.toString().padStart(2, '0');
+    daysEl.innerText = days.toString().padStart(2, '0');
+    hoursEl.innerText = hours.toString().padStart(2, '0');
+    minutesEl.innerText = minutes.toString().padStart(2, '0');
+    secondsEl.innerText = seconds.toString().padStart(2, '0');
 }
-setInterval(updateCountdown, 1000);
+if (document.querySelector('.countdown-container')) {
+    setInterval(updateCountdown, 1000);
+}
 
 // --- 📸 HERO BACKGROUND ROTATION ---
 const heroSlides = document.querySelectorAll('.hero-carousel-slide');
@@ -71,8 +92,10 @@ function rotateHeroCarousel() {
     updateHeroCarousel();
 }
 
-updateHeroCarousel();
-setInterval(rotateHeroCarousel, 2000);
+if (heroSlides.length > 0) {
+    updateHeroCarousel();
+    setInterval(rotateHeroCarousel, 2000);
+}
 
 // --- 🎵 AUDIO PLAYER ---
 const audio = document.getElementById("bg-music");
@@ -90,6 +113,7 @@ function setMusicButtonState(isPlaying) {
 
 if (audio) {
     const savedVolume = Number(localStorage.getItem('musicVolume') || 50) / 100;
+    const savedPlaybackTime = Number(localStorage.getItem('musicCurrentTime') || 0);
     audio.volume = savedVolume;
 
     if (musicToggle) {
@@ -97,18 +121,25 @@ if (audio) {
         setMusicButtonState(audio.paused);
     }
 
+    const persistMusicState = (isPlaying) => {
+        localStorage.setItem('musicPlaying', isPlaying ? 'true' : 'false');
+    };
+
     const startMusic = () => {
         if (!audio.src) {
             audio.src = 'sangu%20audio.mpeg';
         }
         audio.load();
+        if (savedPlaybackTime > 0 && audio.currentTime < savedPlaybackTime) {
+            audio.currentTime = savedPlaybackTime;
+        }
         if (audio.paused) {
             audio.play().then(() => {
                 setMusicButtonState(true);
-                localStorage.setItem('musicPlaying', 'true');
+                persistMusicState(true);
             }).catch(() => {
                 setMusicButtonState(false);
-                localStorage.setItem('musicPlaying', 'false');
+                persistMusicState(false);
             });
         }
     };
@@ -123,6 +154,11 @@ if (audio) {
     document.addEventListener('pointerdown', startMusic, { once: true });
     document.addEventListener('keydown', startMusic, { once: true });
     window.addEventListener('pageshow', resumeMusicIfEnabled);
+    window.addEventListener('beforeunload', () => {
+        if (!audio.paused) {
+            localStorage.setItem('musicCurrentTime', audio.currentTime.toString());
+        }
+    });
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {
             resumeMusicIfEnabled();
@@ -134,22 +170,30 @@ if (audio) {
             event.stopPropagation();
             if (audio.paused) {
                 startMusic();
-                localStorage.setItem('musicPlaying', 'true');
+                persistMusicState(true);
             } else {
                 audio.pause();
                 setMusicButtonState(false);
-                localStorage.setItem('musicPlaying', 'false');
+                persistMusicState(false);
             }
         });
     }
 
     audio.addEventListener('play', () => {
         setMusicButtonState(true);
-        localStorage.setItem('musicPlaying', 'true');
+        persistMusicState(true);
     });
     audio.addEventListener('pause', () => {
         setMusicButtonState(false);
-        localStorage.setItem('musicPlaying', 'false');
+        persistMusicState(false);
+    });
+    audio.addEventListener('timeupdate', () => {
+        if (audio.currentTime > 0) {
+            localStorage.setItem('musicCurrentTime', audio.currentTime.toString());
+        }
+    });
+    audio.addEventListener('ended', () => {
+        persistMusicState(false);
     });
 
     resumeMusicIfEnabled();
@@ -160,6 +204,10 @@ const heartsContainer = document.getElementById("hearts-container");
 
 // --- 💕 FLOATING HEARTS ---
 function createHeart() {
+    if (!heartsContainer) {
+        return;
+    }
+
     const heart = document.createElement("div");
     heart.classList.add("heart");
     heart.textContent = "❤️";
@@ -180,9 +228,15 @@ function createHeart() {
 }
 
 // Create hearts periodically
-setInterval(createHeart, 500);
+if (heartsContainer) {
+    setInterval(createHeart, 500);
+}
 
 function createPetal() {
+    if (!petalsContainer) {
+        return;
+    }
+
     const petal = document.createElement("div");
     petal.classList.add("petal");
     
@@ -205,4 +259,6 @@ function createPetal() {
 }
 
 // Generate fluid continuous rendering loop
-setInterval(createPetal, 300);
+if (petalsContainer) {
+    setInterval(createPetal, 300);
+}

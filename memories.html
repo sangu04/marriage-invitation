@@ -7,6 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>Our Memories</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link rel="stylesheet" href="style.css" />
   <style>
     body { background: #fffaf7; color: #4a4e69; }
@@ -52,5 +53,13 @@
       <div class="album-card"><img src="our%20memory%2012.jpg" alt="Our Memory 12 Alternate" loading="lazy"></div>
     </div>
   </div>
+  <audio id="bg-music" loop preload="none">
+    <source src="sangu%20audio.mpeg" type="audio/mpeg">
+  </audio>
+  <button id="music-toggle" class="music-toggle" title="Play or pause music" aria-label="Play or pause music">
+    <i class="fa-solid fa-circle-play"></i>
+    <span>Music</span>
+  </button>
+  <script src="script.js"></script>
 </body>
 </html>
