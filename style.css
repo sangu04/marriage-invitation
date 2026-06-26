@@ -24,6 +24,10 @@ body {
     overflow-x: hidden;
 }
 
+#main-content {
+    padding-bottom: 110px;
+}
+
 /* --- 💫 LOADER ANIMATION --- */
 #loader {
     position: fixed;
@@ -1216,7 +1220,7 @@ footer {
 
 .invitee-background {
     position: relative;
-    min-height: 860px;
+    min-height: min(860px, 78vh);
     border-radius: 24px;
     overflow: hidden;
     background: #0d090a url('family section.jpeg') center center/cover no-repeat;
@@ -1234,7 +1238,7 @@ footer {
     align-items: center;
     text-align: center;
     padding: 40px 28px;
-    background: linear-gradient(180deg, rgba(8, 6, 6, 0.88), rgba(8, 6, 6, 0.42));
+    background: linear-gradient(180deg, rgba(8, 6, 6, 0.28), rgba(8, 6, 6, 0.12));
 }
 
 .invitee-section .section-title {
@@ -1268,8 +1272,9 @@ footer {
     max-width: 1200px;
     margin: 24px auto 0;
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 18px;
+    align-items: stretch;
 }
 
 .gallery-preview-card,
@@ -1278,12 +1283,15 @@ footer {
     overflow: hidden;
     box-shadow: 0 10px 28px rgba(0,0,0,0.08);
     background: #fff;
+    display: flex;
+    min-height: 100%;
 }
 
 .gallery-preview-card img,
 .celebration-card img {
     width: 100%;
-    height: 260px;
+    min-height: 260px;
+    height: 100%;
     object-fit: cover;
     display: block;
 }
