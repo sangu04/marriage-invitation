@@ -1,0 +1,17 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Run Wedding Invitation",
+      "type": "node-terminal",
+      "request": "launch",
+      "command": "py -m http.server 8000 --bind 127.0.0.1",
+      "cwd": "${workspaceFolder}",
+      "serverReadyAction": {
+        "action": "openExternally",
+        "pattern": "Serving HTTP on .* port ([0-9]+)",
+        "uriFormat": "http://127.0.0.1:%s/index.html"
+      }
+    }
+  ]
+}
